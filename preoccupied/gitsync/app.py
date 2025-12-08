@@ -21,7 +21,7 @@ app = FastAPI()
 
 
 @app.post('/sync/{name}')
-async def sync(name: str, x_sync_token: str = Header(None)):
+async def sync(name: str = 'default', x_sync_token: str = Header(None)):
     """
     Sync a specific repository by name
     """

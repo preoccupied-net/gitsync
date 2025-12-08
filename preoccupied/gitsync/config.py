@@ -35,6 +35,8 @@ class GlobalConfig(BaseModel):
     github_installation_id: Optional[str] = None
     github_keyfile: Optional[str] = None
 
+    webhook_secret: Optional[str] = None
+
 
 class RepoConfig(BaseModel):
     """
@@ -72,7 +74,7 @@ class GitHubRepoConfig(RepoConfig):
     github_keyfile: Optional[str] = None
 
 
-    def github_installation_token(self) -> Optional[str]:
+    async def github_installation_token(self) -> Optional[str]:
         """
         Get a GitHub installation token for the given repository.
         """
@@ -80,7 +82,7 @@ class GitHubRepoConfig(RepoConfig):
         if not self.github_keyfile:
             return None
 
-        return github_installation_token(
+        return await github_installation_token(
             github_keyfile=self.github_keyfile,
             github_app_id=self.github_app_id,
             github_installation_id=self.github_installation_id
@@ -96,7 +98,7 @@ class GitHubRepoConfig(RepoConfig):
             repo_dir=self.directory,
             git_url=self.git_url,
             git_branch=self.branch,
-            git_token=self.github_installation_token()
+            git_token=await self.github_installation_token()
         )
 
 
@@ -136,24 +138,73 @@ class RootConfig(BaseModel):
                 repo.setdefault('github_app_id', glbl.github_app_id)
                 repo.setdefault('github_installation_id', glbl.github_installation_id)
 
+            repo.setdefault('webhook_secret', glbl.webhook_secret)
+
         return fixed
+
+
+def _config_from_env() -> Dict[str, Any]:
+    """
+    Build configuration dictionary from GITSYNC_* environment variables.
+    """
+
+    # For ENV configuration, these three are considered global settings, and
+    # they'll apply to the ENV repository if configured, and will be the baseline
+    # for any value loaded in the config file (if any)
+    global_config = {}
+    pairs = (
+        ('GITSYNC_GITHUB_APP_ID', 'github_app_id'),
+        ('GITSYNC_GITHUB_INSTALLATION_ID', 'github_installation_id'),
+        ('GITSYNC_GITHUB_KEYFILE', 'github_keyfile'),
+        ('GITSYNC_WEBHOOK_SECRET', 'webhook_secret'))
+
+    for env_var, config_key in pairs:
+        value = os.environ.get(env_var)
+        if value is not None:
+            global_config[config_key] = value
+
+    repo_config = {}
+    pairs = (
+        ('GITSYNC_REPO_NAME', 'name'),
+        ('GITSYNC_REPO_DIRECTORY', 'directory'),
+        ('GITSYNC_REPO_GIT_URL', 'git_url'),
+        ('GITSYNC_REPO_BRANCH', 'branch'),
+        ('GITSYNC_REPO_PROVIDER', 'provider'))
+
+    for env_var, config_key in pairs:
+        value = os.environ.get(env_var)
+        if value is not None:
+            repo_config[config_key] = value
+
+    if repo_config:
+        repo_config.setdefault('name', 'default')
+
+    result = {'global': global_config,}
+    if repo_config:
+        result['repos'] = {repo_config['name']: repo_config}
+    return result
 
 
 def get_config():
     """
     Get the global config object.
     """
+
     global _config
 
     if _config is None:
-        if not os.path.exists(CONFIG_PATH):
-            raise FileNotFoundError(f'Config file not found: {CONFIG_PATH}')
+        env_config = _config_from_env()
 
-        with open(CONFIG_PATH, 'r') as f:
-            config_data = yaml.safe_load(f)
+        if os.path.exists(CONFIG_PATH):
+            # TODO: reload config file if it changes, but only if the config
+            # file is newer than the last reload
 
-        if not config_data:
-            raise ValueError('Config file is empty or invalid')
+            with open(CONFIG_PATH, 'r') as f:
+                config_data = yaml.safe_load(f)
+            config_data.setdefault('global', {}).update(env_config.get('global', {}))
+            config_data.setdefault('repos', {}).update(env_config.get('repos', {}))
+        else:
+            config_data = env_config
 
         _config = RootConfig.model_validate(config_data)
         logger.info(f'Loaded configuration with {len(_config.repos)} repositories')

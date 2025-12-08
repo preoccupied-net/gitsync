@@ -6,13 +6,13 @@ GitHub-specific token logic for the gitsync application.
 :ai-assistant: Auto via Cursor
 """
 
-import threading
+import asyncio
 import time
 from datetime import datetime, timezone
 from typing import Union, Dict, Tuple
 
+import httpx
 import jwt
-import requests
 import logging
 
 
@@ -24,10 +24,10 @@ CACHE_THRESHOLD = 50 * 60  # 50 minutes
 
 # Cache for GitHub installation tokens, keyed by (app_id, installation_id)
 _token_cache: Dict[Tuple[str, str], Dict[str, Union[str, datetime]]] = {}
-_cache_lock = threading.Lock()
+_cache_lock = asyncio.Lock()
 
 
-def github_installation_token(
+async def github_installation_token(
         github_keyfile: str,
         github_app_id: str,
         github_installation_id: str) -> str:
@@ -47,7 +47,7 @@ def github_installation_token(
     now = datetime.now(timezone.utc)
 
     # Check cache first
-    with _cache_lock:
+    async with _cache_lock:
         if cache_key in _token_cache:
             cached = _token_cache[cache_key]
             expires_at = cached['expires_at']
@@ -78,12 +78,14 @@ def github_installation_token(
         'Accept': 'application/vnd.github+json'
     }
 
-    r = requests.post(
-        f'https://api.github.com/app/installations/{github_installation_id}/access_tokens',
-        headers=headers,
-    )
-    r.raise_for_status()
-    response_data = r.json()
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f'https://api.github.com/app/installations/{github_installation_id}/access_tokens',
+            headers=headers,
+        )
+        r.raise_for_status()
+        response_data = r.json()
+
     token = response_data['token']
     expires_at_str = response_data['expires_at']
 
@@ -91,7 +93,7 @@ def github_installation_token(
     expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
 
     # Store in cache
-    with _cache_lock:
+    async with _cache_lock:
         _token_cache[cache_key] = {
             'token': token,
             'expires_at': expires_at,
