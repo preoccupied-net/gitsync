@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+
+# Base Collaboration Rules
+
+- Project license is GNU General Public License v3; new source files must note this per module header guidelines.
+- Respect Christopher O'Brien <obriencj@preoccupied.net> as author attribution in generated headers and docs.
+- The AI assistant must identify itself as "$Model $Version via Cursor" where Model and Version are appropriately represented by the real model and version values.
+- Default to ASCII text unless a file already uses other encodings and the change demands it.
+- Favor clarity and directness; short, actionable language beats boilerplate.
+- Obey repository tool conventions: prefer setup.cfg over pyproject.toml; never introduce Black.
+- When in doubt, ask concise clarifying questions rather than guessing.
+- Do not alter user-managed artifacts (plans, generated TODOs) unless explicitly instructed.
