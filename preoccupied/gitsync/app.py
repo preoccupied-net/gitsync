@@ -21,7 +21,7 @@ app = FastAPI()
 
 
 @app.post('/sync/{name}')
-def sync(name: str, x_sync_token: str = Header(None)):
+async def sync(name: str, x_sync_token: str = Header(None)):
     """
     Sync a specific repository by name
     """
@@ -38,7 +38,7 @@ def sync(name: str, x_sync_token: str = Header(None)):
         raise HTTPException(status_code=401, detail='Bad secret')
 
     try:
-        repo.sync()
+        await repo.sync()
         return {'status': 'ok', 'repo': name}
     except Exception as e:
         logger.error(f"Error syncing repo '{name}': {e}", exc_info=True)
@@ -46,7 +46,7 @@ def sync(name: str, x_sync_token: str = Header(None)):
 
 
 @app.on_event('startup')
-def startup_event():
+async def startup_event():
     """
     Load config and sync all repositories on startup
     """
@@ -60,7 +60,7 @@ def startup_event():
     for repo_name, repo in config.repos.items():
         try:
             logger.info(f"Syncing repository '{repo_name}' on startup...")
-            repo.sync()
+            await repo.sync()
             logger.info(f"Successfully synced repository '{repo_name}'")
         except Exception as e:
             logger.error(f"Failed to sync repository '{repo_name}' on startup: {e}", exc_info=True)

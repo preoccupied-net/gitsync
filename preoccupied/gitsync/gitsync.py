@@ -6,16 +6,32 @@ General git utilities for the gitsync application.
 :ai-assistant: Auto via Cursor
 """
 
+import asyncio
 import os
 import subprocess
 from typing import Optional
 
-
-def run(*args: str, cwd: str = None) -> None:
-    subprocess.check_call(args, cwd=cwd)
+import logging
 
 
-def sync_git_repo(
+logger = logging.getLogger(__name__)
+
+
+async def run(*args: str, cwd: str = None) -> None:
+    logger.debug(f'Running {args} in {cwd}')
+    process = await asyncio.create_subprocess_exec(
+        *args,
+        cwd=cwd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    returncode = await process.wait()
+    if returncode != 0:
+        stderr = await process.stderr.read()
+        raise subprocess.CalledProcessError(returncode, args, stderr=stderr)
+
+
+async def sync_git_repo(
         repo_dir: str,
         git_url: str,
         git_branch: str,
@@ -29,14 +45,14 @@ def sync_git_repo(
 
     if not os.path.isdir(os.path.join(repo_dir, '.git')):
         os.makedirs(repo_dir, exist_ok=True)
-        run('git', 'clone', git_url, repo_dir)
+        await run('git', 'clone', git_url, repo_dir)
     else:
         if git_token:
-            run('git', 'remote', 'set-url', 'origin', git_url)
-        run('git', 'fetch', '--all', '--prune')
-        run('git', 'reset', '--hard', f'origin/{git_branch}')
+            await run('git', 'remote', 'set-url', 'origin', git_url)
+        await run('git', 'fetch', '--all', '--prune')
+        await run('git', 'reset', '--hard', f'origin/{git_branch}')
 
-    run('git', 'log', '-1', '--oneline', cwd=repo_dir)
+    await run('git', 'log', '-1', '--oneline', cwd=repo_dir)
 
 
 # The end.

@@ -49,12 +49,12 @@ class RepoConfig(BaseModel):
     provider: Literal['git'] = 'git'
 
 
-    def sync(self) -> None:
+    async def sync(self) -> None:
         """
         Sync the repository.
         """
 
-        return sync_git_repo(
+        return await sync_git_repo(
             repo_dir=self.directory,
             git_url=self.git_url,
             git_branch=self.branch,
@@ -87,12 +87,12 @@ class GitHubRepoConfig(RepoConfig):
         )
 
 
-    def sync(self) -> None:
+    async def sync(self) -> None:
         """
         Sync the repository.
         """
 
-        return sync_git_repo(
+        return await sync_git_repo(
             repo_dir=self.directory,
             git_url=self.git_url,
             git_branch=self.branch,
