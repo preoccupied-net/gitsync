@@ -11,7 +11,9 @@ RUN pip install --root-user-action=ignore \
     uvicorn \
     PyJWT \
     requests \
-    cryptography
+    cryptography \
+    pyyaml \
+    pydantic
 
 COPY gitsync.py .
 
