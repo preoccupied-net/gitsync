@@ -1,6 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
-
-"""app
+"""
 FastAPI webhook application for the gitsync service.
 
 :author: Christopher O'Brien <obriencj@preoccupied.net>
@@ -12,7 +10,7 @@ import logging
 
 from fastapi import FastAPI, Header, HTTPException
 
-from preoccupied.gitsync.config import get_config
+from .config import get_config
 
 
 logging.basicConfig(level=logging.INFO)

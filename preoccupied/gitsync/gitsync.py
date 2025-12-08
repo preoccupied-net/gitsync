@@ -1,6 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
-
-"""gitsync
+"""
 General git utilities for the gitsync application.
 
 :author: Christopher O'Brien <obriencj@preoccupied.net>

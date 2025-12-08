@@ -1,6 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
-
-"""preoccupied.gitsync
+"""
 Git synchronization service with webhook support.
 
 :author: Christopher O'Brien <obriencj@preoccupied.net>

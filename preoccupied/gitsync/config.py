@@ -1,6 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
-
-"""config
+"""
 Configuration models and loading for the gitsync application.
 
 :author: Christopher O'Brien <obriencj@preoccupied.net>
@@ -15,8 +13,8 @@ from typing import Annotated, Any, Dict, Literal, Optional, Union
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
-from preoccupied.gitsync.github import github_installation_token
-from preoccupied.gitsync.gitsync import sync_git_repo
+from .github import github_installation_token
+from .gitsync import sync_git_repo
 
 
 logger = logging.getLogger(__name__)
@@ -102,13 +100,16 @@ class GitHubRepoConfig(RepoConfig):
         )
 
 
+RepoTypes = Union[RepoConfig, GitHubRepoConfig]
+
+
 class RootConfig(BaseModel):
     """
     Root configuration model
     """
 
     global_: GlobalConfig = Field(alias='global', default_factory=GlobalConfig)
-    repos: Dict[str, Annotated[Union[RepoConfig, GitHubRepoConfig], Field(discriminator='provider')]] = Field(
+    repos: Dict[str, Annotated[RepoTypes, Field(discriminator='provider')]] = Field(
         default_factory=dict
     )
 
@@ -128,11 +129,12 @@ class RootConfig(BaseModel):
         for repo_name, repo in repos.items():
             repo = repos[repo_name] = repo.copy()
             repo.setdefault('name', repo_name)
-            repo.setdefault('provider', 'git')
-            repo.setdefault('github_keyfile', glbl.github_keyfile)
-            repo.setdefault('github_app_id', glbl.github_app_id)
-            repo.setdefault('github_installation_id', glbl.github_installation_id)
-            repo.setdefault('global', glbl)
+            provider = repo.setdefault('provider', 'git')
+
+            if provider == 'github':
+                repo.setdefault('github_keyfile', glbl.github_keyfile)
+                repo.setdefault('github_app_id', glbl.github_app_id)
+                repo.setdefault('github_installation_id', glbl.github_installation_id)
 
         return fixed
 
