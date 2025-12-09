@@ -16,9 +16,8 @@ WORKDIR /setup
 COPY requirements.txt .
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt
 
-COPY --from=builder /build/dist/preoccupied-gitsync-*.whl .
-RUN pip install --no-cache-dir --root-user-action=ignore --no-deps preoccupied-gitsync-*.whl && \
-    rm -f preoccupied-gitsync-*.whl
+COPY --from=builder /build/dist/preoccupied_gitsync-*.whl .
+RUN pip install --no-cache-dir --root-user-action=ignore --no-deps preoccupied_gitsync-*.whl
 
 WORKDIR /app
 RUN rm -rf /setup
