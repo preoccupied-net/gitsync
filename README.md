@@ -89,6 +89,7 @@ In this example, `my-project` uses the standard Git provider and has its own web
 ## Contact
 
 Author: Christopher O'Brien <obriencj@preoccupied.net>
+
 Original Repository: https://github.com/preoccupied-net/gitsync
 
 ## License
