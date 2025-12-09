@@ -36,6 +36,7 @@ class GlobalConfig(BaseModel):
     github_keyfile: Optional[str] = None
 
     webhook_secret: Optional[str] = None
+    sync_on_startup: bool = True
 
 
 class RepoConfig(BaseModel):
@@ -129,16 +130,17 @@ class RootConfig(BaseModel):
 
         repos = fixed['repos'] = v.get('repos', {})
         for repo_name, repo in repos.items():
-            repo = repos[repo_name] = repo.copy()
-            repo.setdefault('name', repo_name)
-            provider = repo.setdefault('provider', 'git')
+            if isinstance(repo, dict):
+                repo = repos[repo_name] = repo.copy()
+                repo.setdefault('name', repo_name)
+                provider = repo.setdefault('provider', 'git')
 
-            if provider == 'github':
-                repo.setdefault('github_keyfile', glbl.github_keyfile)
-                repo.setdefault('github_app_id', glbl.github_app_id)
-                repo.setdefault('github_installation_id', glbl.github_installation_id)
+                if provider == 'github':
+                    repo.setdefault('github_keyfile', glbl.github_keyfile)
+                    repo.setdefault('github_app_id', glbl.github_app_id)
+                    repo.setdefault('github_installation_id', glbl.github_installation_id)
 
-            repo.setdefault('webhook_secret', glbl.webhook_secret)
+                repo.setdefault('webhook_secret', glbl.webhook_secret)
 
         return fixed
 

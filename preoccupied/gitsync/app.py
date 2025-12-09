@@ -7,6 +7,7 @@ FastAPI webhook application for the gitsync service.
 """
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Header, HTTPException
 
@@ -17,7 +18,49 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI()
+async def app_startup():
+    """
+    Startup event handler for the app
+    """
+
+    # fetch configuration for the first time
+    try:
+        config = get_config()
+    except Exception as e:
+        logger.error(f'Failed to load configuration or sync repositories: {e}', exc_info=True)
+        raise
+
+    # pre-sync all repositories
+    if not config.global_.sync_on_startup:
+        return
+
+    for repo_name, repo in config.repos.items():
+        try:
+            logger.info(f"Syncing repository '{repo_name}' on startup...")
+            await repo.sync()
+            logger.info(f"Successfully synced repository '{repo_name}'")
+        except Exception as e:
+            logger.error(f"Failed to sync repository '{repo_name}' on startup: {e}", exc_info=True)
+
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    """
+    Lifespan event handler for the app
+    """
+
+    logger.info('Starting up...')
+
+    await app_startup()
+
+    try:
+        yield
+    finally:
+
+        logger.info('Shutting down...')
+
+
+app = FastAPI(lifespan=app_lifespan)
 
 
 @app.post('/sync/{name}')
@@ -43,27 +86,6 @@ async def sync(name: str = 'default', x_sync_token: str = Header(None)):
     except Exception as e:
         logger.error(f"Error syncing repo '{name}': {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f'Sync failed: {str(e)}')
-
-
-@app.on_event('startup')
-async def startup_event():
-    """
-    Load config and sync all repositories on startup
-    """
-
-    try:
-        config = get_config()
-    except Exception as e:
-        logger.error(f'Failed to load configuration or sync repositories: {e}', exc_info=True)
-        raise
-
-    for repo_name, repo in config.repos.items():
-        try:
-            logger.info(f"Syncing repository '{repo_name}' on startup...")
-            await repo.sync()
-            logger.info(f"Successfully synced repository '{repo_name}'")
-        except Exception as e:
-            logger.error(f"Failed to sync repository '{repo_name}' on startup: {e}", exc_info=True)
 
 
 # The end.
