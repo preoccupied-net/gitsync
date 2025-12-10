@@ -13,6 +13,8 @@ FROM python:3.12-alpine
 
 WORKDIR /setup
 
+RUN apk update && apk add git
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt
 

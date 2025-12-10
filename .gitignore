@@ -25,3 +25,4 @@ dist
 htmlcov
 logs
 tmp
+example/data
