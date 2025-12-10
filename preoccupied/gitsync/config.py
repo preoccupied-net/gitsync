@@ -20,7 +20,7 @@ from .gitsync import sync_git_repo
 logger = logging.getLogger(__name__)
 
 
-CONFIG_PATH = os.environ.get('CONFIG_PATH', '/config/config.yaml')
+CONFIG_PATH = os.environ.get('GITSYNC_CONFIG_PATH', '/etc/gitsync.yml')
 
 
 _config: Optional['RootConfig'] = None
@@ -197,7 +197,7 @@ def get_config():
     if _config is None:
         env_config = _config_from_env()
 
-        if os.path.exists(CONFIG_PATH):
+        if CONFIG_PATH and os.path.exists(CONFIG_PATH):
             # TODO: reload config file if it changes, but only if the config
             # file is newer than the last reload
 

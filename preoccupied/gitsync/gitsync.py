@@ -7,11 +7,11 @@ General git utilities for the gitsync application.
 """
 
 import asyncio
+import logging
 import os
 import subprocess
+from pathlib import Path
 from typing import Optional
-
-import logging
 
 
 logger = logging.getLogger(__name__)
@@ -40,17 +40,24 @@ async def sync_git_repo(
     Initial or update the sync of the repository specified by repo_name.
     """
 
+    original_url = git_url
     if git_token:
         git_url = git_url.replace('https://', f'https://x-access-token:{git_token}@')
 
-    if not os.path.isdir(os.path.join(repo_dir, '.git')):
+    repo_path = Path(repo_dir)
+    git_dir = repo_path / '.git'
+
+    if not repo_path.exists() or not git_dir.exists():
+        logging.info(f'Cloning {original_url} to {repo_dir}')
+        repo_path.mkdir(parents=True, exist_ok=True)
         os.makedirs(repo_dir, exist_ok=True)
         await run('git', 'clone', git_url, repo_dir)
     else:
+        logging.info(f'Pulling {original_url} to {repo_dir}')
         if git_token:
-            await run('git', 'remote', 'set-url', 'origin', git_url)
-        await run('git', 'fetch', '--all', '--prune')
-        await run('git', 'reset', '--hard', f'origin/{git_branch}')
+            await run('git', 'remote', 'set-url', 'origin', git_url, cwd=repo_dir)
+        await run('git', 'fetch', '--all', '--prune', cwd=repo_dir)
+        await run('git', 'reset', '--hard', f'origin/{git_branch}', cwd=repo_dir)
 
     await run('git', 'log', '-1', '--oneline', cwd=repo_dir)
 

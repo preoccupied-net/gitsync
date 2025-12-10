@@ -32,12 +32,12 @@ async def github_installation_token(
         github_app_id: str,
         github_installation_id: str) -> str:
     """
-    Get a GitHub installation token for the given app ID and
-    installation ID using the private key in github_keyfile.
-    Returns the installation token as a string.
+    Get a GitHub installation token for the given app ID and installation ID
+    using the private key in github_keyfile. Returns the installation token as a
+    string.
 
-    Tokens are cached and reused until they reach 75% of their
-    lifetime (45 minutes), at which point a new token is requested.
+    Tokens are cached and reused until they approach the end of their lifetime
+    (50 minutes, see CACHE_THRESHOLD), at which point a new token is requested.
     """
 
     if not (github_app_id and github_installation_id and github_keyfile):
