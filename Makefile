@@ -2,7 +2,7 @@
 
 
 build:
-	tox -e build
+	tox -qe build
 
 
 build-container: requirements.txt
@@ -26,10 +26,10 @@ upgrade:
 
 
 test:
-	tox -e py
+	tox -qe py
 
 flake8:
-	tox -e flake8
+	tox -qe flake8
 
 
 clean:
