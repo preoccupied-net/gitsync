@@ -181,8 +181,10 @@ def _config_from_env() -> Dict[str, Any]:
     if repo_config:
         repo_config.setdefault('name', 'default')
 
+    logger.info(f'Global env configuration: {global_config}')
     result = {'global': global_config,}
     if repo_config:
+        logger.info(f'Repo env configuration: {repo_config}')
         result['repos'] = {repo_config['name']: repo_config}
     return result
 
@@ -201,11 +203,15 @@ def get_config():
             # TODO: reload config file if it changes, but only if the config
             # file is newer than the last reload
 
+            logger.info(f'Loading configuration from {CONFIG_PATH}')
+
             with open(CONFIG_PATH, 'r') as f:
                 config_data = yaml.safe_load(f)
             config_data.setdefault('global', {}).update(env_config.get('global', {}))
             config_data.setdefault('repos', {}).update(env_config.get('repos', {}))
         else:
+
+            logger.info(f'Loading configuration from environment variables')
             config_data = env_config
 
         _config = RootConfig.model_validate(config_data)

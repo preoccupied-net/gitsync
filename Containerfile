@@ -24,7 +24,9 @@ RUN pip install --no-cache-dir --root-user-action=ignore --no-deps preoccupied_g
 WORKDIR /app
 RUN rm -rf /setup
 
-CMD ["uvicorn", "preoccupied.gitsync:app", "--host", "0.0.0.0", "--port", "8080"]
+ENV GITSYNC_WEBHOOK_PORT=8000
+
+CMD ["uvicorn", "preoccupied.gitsync:app", "--host", "0.0.0.0", "--port", "${GITSYNC_WEBHOOK_PORT}"]
 
 
 # The end.
