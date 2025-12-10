@@ -92,7 +92,7 @@ class TestSyncGitRepo:
         git_branch = 'master'
 
         with patch('preoccupied.gitsync.gitsync.run', new_callable=AsyncMock) as mock_run, \
-             patch('preoccupied.gitsync.gitsync.os.path.isdir', return_value=False), \
+             patch('preoccupied.gitsync.gitsync.Path.exists', return_value=False), \
              patch('preoccupied.gitsync.gitsync.os.makedirs') as mock_makedirs:
 
             await gitsync.sync_git_repo(repo_dir, git_url, git_branch)
@@ -111,12 +111,12 @@ class TestSyncGitRepo:
         git_branch = 'main'
 
         with patch('preoccupied.gitsync.gitsync.run', new_callable=AsyncMock) as mock_run, \
-             patch('preoccupied.gitsync.gitsync.os.path.isdir', return_value=True):
+             patch('preoccupied.gitsync.gitsync.Path.exists', return_value=True):
 
             await gitsync.sync_git_repo(repo_dir, git_url, git_branch)
 
-            mock_run.assert_any_call('git', 'fetch', '--all', '--prune')
-            mock_run.assert_any_call('git', 'reset', '--hard', 'origin/main')
+            mock_run.assert_any_call('git', 'fetch', '--all', '--prune', cwd=repo_dir)
+            mock_run.assert_any_call('git', 'reset', '--hard', 'origin/main', cwd=repo_dir)
             mock_run.assert_any_call('git', 'log', '-1', '--oneline', cwd=repo_dir)
 
     async def test_sync_with_token_injects_token_in_url(self, temp_dir):
@@ -130,7 +130,7 @@ class TestSyncGitRepo:
         git_token = 'test-token-123'
 
         with patch('preoccupied.gitsync.gitsync.run', new_callable=AsyncMock) as mock_run, \
-             patch('preoccupied.gitsync.gitsync.os.path.isdir', return_value=False), \
+             patch('preoccupied.gitsync.gitsync.Path.exists', return_value=False), \
              patch('preoccupied.gitsync.gitsync.os.makedirs'):
 
             await gitsync.sync_git_repo(repo_dir, git_url, git_branch, git_token=git_token)
@@ -149,14 +149,14 @@ class TestSyncGitRepo:
         git_token = 'test-token-456'
 
         with patch('preoccupied.gitsync.gitsync.run', new_callable=AsyncMock) as mock_run, \
-             patch('preoccupied.gitsync.gitsync.os.path.isdir', return_value=True):
+             patch('preoccupied.gitsync.gitsync.Path.exists', return_value=True):
 
             await gitsync.sync_git_repo(repo_dir, git_url, git_branch, git_token=git_token)
 
             expected_url = 'https://x-access-token:test-token-456@github.com/test/repo.git'
-            mock_run.assert_any_call('git', 'remote', 'set-url', 'origin', expected_url)
-            mock_run.assert_any_call('git', 'fetch', '--all', '--prune')
-            mock_run.assert_any_call('git', 'reset', '--hard', 'origin/main')
+            mock_run.assert_any_call('git', 'remote', 'set-url', 'origin', expected_url, cwd=repo_dir)
+            mock_run.assert_any_call('git', 'fetch', '--all', '--prune', cwd=repo_dir)
+            mock_run.assert_any_call('git', 'reset', '--hard', 'origin/main', cwd=repo_dir)
 
     async def test_sync_existing_repo_without_token_skips_remote_update(self, temp_dir):
         """
@@ -168,14 +168,14 @@ class TestSyncGitRepo:
         git_branch = 'master'
 
         with patch('preoccupied.gitsync.gitsync.run', new_callable=AsyncMock) as mock_run, \
-             patch('preoccupied.gitsync.gitsync.os.path.isdir', return_value=True):
+             patch('preoccupied.gitsync.gitsync.Path.exists', return_value=True):
 
             await gitsync.sync_git_repo(repo_dir, git_url, git_branch)
 
             calls = [call[0] for call in mock_run.call_args_list]
-            assert ('git', 'remote', 'set-url', 'origin', git_url) not in calls
-            assert ('git', 'fetch', '--all', '--prune') in calls
-            assert ('git', 'reset', '--hard', 'origin/master') in calls
+            assert mock_run.call('git', 'remote', 'set-url', 'origin', git_url, cwd=repo_dir) not in calls
+            mock_run.assert_any_call('git', 'fetch', '--all', '--prune', cwd=repo_dir)
+            mock_run.assert_any_call('git', 'reset', '--hard', 'origin/master', cwd=repo_dir)
 
 
 # The end.
