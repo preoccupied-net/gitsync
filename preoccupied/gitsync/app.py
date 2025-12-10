@@ -63,8 +63,45 @@ async def app_lifespan(app: FastAPI):
 app = FastAPI(lifespan=app_lifespan)
 
 
+@app.post('/sync')
+async def sync_all(x_sync_token: str = Header(None)):
+    """
+    Sync all repositories with a matching webhook secret, or with no webhook secret.
+    """
+
+    config = get_config()
+
+    status = 'ok'
+    results = []
+
+    for repo_name, repo in config.repos.items():
+
+        # we're syncing the repos with no webhook secret, or with a matching given secret.
+        webhook_secret = repo.webhook_secret
+        if webhook_secret and x_sync_token != webhook_secret:
+            # mismatch, skip
+            continue
+
+        try:
+            await repo.sync()
+            results.append({
+                'repo': repo_name,
+                'status': 'ok'
+            })
+        except Exception as e:
+            logger.error(f"Error syncing repo '{repo_name}': {e}", exc_info=True)
+            status = 'error'
+            results.append({
+                'repo': repo_name,
+                'status': 'error',
+                'error': str(e)
+            })
+
+    return {'status': status, 'results': results}
+
+
 @app.post('/sync/{name}')
-async def sync(name: str = 'default', x_sync_token: str = Header(None)):
+async def sync_repo(name: str, x_sync_token: str = Header(None)):
     """
     Sync a specific repository by name
     """
